@@ -1,6 +1,7 @@
 #include "hash.h"
 
-// These are the itens we will save in our hash table:
+// These are the itens we will save in our hash table (It could be any other type of struct and It could...
+// ... also be more than one type of structure):
 typedef struct Movie
 {
     // name is going to be the hash camp
