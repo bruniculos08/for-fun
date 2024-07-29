@@ -30,7 +30,7 @@ nonResidue' n p = if n >= p then Ct (Nothing, 1) else
                     do
                     x <- legendre n p
                     if x == -1 then
-                        return (Just n)
+                        return $ Just n
                     else
                         do
                             nonResidue' (x + 1) p
