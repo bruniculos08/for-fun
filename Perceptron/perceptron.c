@@ -268,11 +268,15 @@ int main(void)
         printf("\n");
     }
     
-    int n = 500;
+    double input_test[] = {2, 2};
+
+    int n = 100000;
     network model = genDenseNetwork(1, 1, input_size, output_size);
     printf("cost function value before %i trains: %lf\n", n, costDenseNetwork(model, data_size, data));
+    printf("evaluete before %i trains: %lf %lf\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
     for(size_t i = 0; i < (size_t) n; i++) trainDenseNetwork(model, data_size, data);
     printf("cost function value after %i trains: %lf\n", n, costDenseNetwork(model, data_size, data));
+    printf("evaluete after %i trains: %lf %lf\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
     printf("network fist layer size = %i\n", model.initial_layer->height);
     printf("network fist layer neuron 0 weights = %lf %lf\n", model.initial_layer->neurons[0].weights[0], model.initial_layer->neurons[0].weights[1]);
     printf("network fist layer neuron 1 weights = %lf %lf\n", model.initial_layer->neurons[1].weights[0], model.initial_layer->neurons[1].weights[1]);

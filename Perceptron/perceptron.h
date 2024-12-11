@@ -6,7 +6,7 @@
 
 #define WIDTH 800
 #define HEIGHT 500
-#define EPSILON 0.01
+#define EPSILON 0.0001
 
 typedef struct Perceptron perceptron;
 
