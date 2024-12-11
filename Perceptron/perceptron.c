@@ -1,5 +1,29 @@
 #include "perceptron.h"
 
+void printDenseNetwork(network model)
+{
+    layer *l;
+    int layer_index = 0;
+    for(l = model.initial_layer; l != NULL; l = l->next)
+    {
+        printf("layer %i: ", layer_index);
+        for(size_t i = 0; i < (size_t) l->height; i++)
+        {
+            printf("[");
+            for (size_t k = 0; k < (size_t) l->neurons[i].input_size; k++)
+            {
+                printf("w%li = %lf", k+1, l->neurons[i].weights[k]);
+                if(k != (l->neurons[i].input_size - 1))
+                    printf(", ");
+            }
+            printf("] ");
+            
+        }
+        layer_index++;
+        printf("\n");
+    }
+}
+
 double **readData(char *file_name, int *data_size, int *input_size, int *output_size)
 {
     FILE *fptr;
@@ -57,7 +81,8 @@ void trainDenseNetwork(network model, int data_size, double **data)
                 actual_layer->neurons[i].weights[k] += EPSILON; 
                 double cost_w_epsilon = costDenseNetwork(model, data_size, data);
                 actual_layer->neurons[i].weights[k] -= EPSILON;
-                actual_layer->neurons[i].weights[k] -= signal(cost_w_epsilon - cost_w) * EPSILON;
+                // actual_layer->neurons[i].weights[k] -= signal(cost_w_epsilon - cost_w) * EPSILON;
+                actual_layer->neurons[i].weights[k] -= (cost_w_epsilon - cost_w) * EPSILON;
             }
         }
     }
@@ -77,7 +102,10 @@ double costDenseNetwork(network model, int data_size, double **data)
     for(size_t i = 0; i < (size_t) data_size; i++)
         // data[i] = {x1, x2, ..., xn, y1, y2, ..., yk}
         for(size_t k = 0; k < (size_t) output_size; k++)
-            carry += fabs((data[i][input_size + k] - (evaluateDenseInput(model, data[i]))[k])) / ((double) data_size);
+            if(COST_FUNCTION == 0)
+                carry += fabs((data[i][input_size + k] - (evaluateDenseInput(model, data[i]))[k])) / ((double) data_size);
+            else if(COST_FUNCTION == 1) 
+                carry += pow((data[i][input_size + k] - (evaluateDenseInput(model, data[i]))[k]), 2) / ((double) data_size);
     return carry;
 }
 
@@ -261,25 +289,24 @@ int main(void)
     double **data;
     int data_size, input_size, output_size;
     data = readData("data.txt", &data_size, &input_size, &output_size);
-    for(size_t i = 0; i < (size_t) data_size; i++)
-    {
-        for(size_t j = 0; j < (size_t) (input_size + output_size); j++)
-            printf("%lf ", data[i][j]);
-        printf("\n");
-    }
+    // for(size_t i = 0; i < (size_t) data_size; i++)
+    // {
+    //     for(size_t j = 0; j < (size_t) (input_size + output_size); j++)
+    //         printf("%lf ", data[i][j]);
+    //     printf("\n");
+    // }
     
     double input_test[] = {2, 2};
 
-    int n = 100000;
-    network model = genDenseNetwork(1, 1, input_size, output_size);
+    int n = TRAINING_TIMES;
+    int layers_num = 1;
+    int layers_size = 1;
+    network model = genDenseNetwork(layers_num, layers_size, input_size, output_size);
     printf("cost function value before %i trains: %lf\n", n, costDenseNetwork(model, data_size, data));
-    printf("evaluete before %i trainings: %lf %lf\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
+    printf("evaluate before %i trainings: %lf %lf\n\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
     for(size_t i = 0; i < (size_t) n; i++) trainDenseNetwork(model, data_size, data);
     printf("cost function value after %i trains: %lf\n", n, costDenseNetwork(model, data_size, data));
-    printf("evaluete after %i trainings: %lf %lf\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
-    printf("network fist layer size = %i\n", model.initial_layer->height);
-    printf("network fist layer neuron 0 weights = %lf %lf\n", model.initial_layer->neurons[0].weights[0], model.initial_layer->neurons[0].weights[1]);
-    printf("network fist layer neuron 1 weights = %lf %lf\n", model.initial_layer->neurons[1].weights[0], model.initial_layer->neurons[1].weights[1]);
-    printf("network final layer size = %i\n", model.final_layer->height);
+    printf("evaluate after %i trainings: %lf %lf\n\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
 
+    printDenseNetwork(model);
 }

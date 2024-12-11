@@ -4,9 +4,10 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define WIDTH 800
-#define HEIGHT 500
-#define EPSILON 0.0001
+#define EPSILON 0.01
+// Para a função de custo: 0 -> mean of abs value differences, 1 -> mean of squared differences 
+#define COST_FUNCTION 0
+#define TRAINING_TIMES 50000
 
 typedef struct Perceptron perceptron;
 
@@ -47,6 +48,8 @@ typedef struct Network
     layer *final_layer;
 } network;
 
+// Função para "imprimir" rede neural densa:
+void printDenseNetwork(network model);
 // Função para gerar vetor de dados:
 double **readData(char *file_name, int *data_size, int *input_size, int *output_size);
 // Função para multiplicar vetores de doubles:
