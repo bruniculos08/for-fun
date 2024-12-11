@@ -1,0 +1,6 @@
+# data_size input_size output_size
+4 2 2
+1 1 2 0
+0 0 0 0
+4 5 9 1
+4 3 7 -1
