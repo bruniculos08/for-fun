@@ -6,8 +6,8 @@
 
 #define EPSILON 0.01
 // Para a função de custo: 0 -> mean of abs value differences, 1 -> mean of squared differences 
-#define COST_FUNCTION 0
-#define TRAINING_TIMES 50000
+#define COST_FUNCTION 1
+#define TRAINING_TIMES 100000
 
 typedef struct Perceptron perceptron;
 

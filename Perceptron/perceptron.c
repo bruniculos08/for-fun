@@ -12,7 +12,7 @@ void printDenseNetwork(network model)
             printf("[");
             for (size_t k = 0; k < (size_t) l->neurons[i].input_size; k++)
             {
-                printf("w%li = %lf", k+1, l->neurons[i].weights[k]);
+                printf("w%li = %.4lf", k+1, l->neurons[i].weights[k]);
                 if(k != (l->neurons[i].input_size - 1))
                     printf(", ");
             }
@@ -71,7 +71,8 @@ double **readData(char *file_name, int *data_size, int *input_size, int *output_
 
 void trainDenseNetwork(network model, int data_size, double **data)
 {
-    for(layer *actual_layer = model.initial_layer; actual_layer != NULL; actual_layer = actual_layer->next)
+    layer *actual_layer;
+    for(actual_layer = model.initial_layer; actual_layer != NULL; actual_layer = actual_layer->next)
     {
         for(size_t i = 0; i < actual_layer->height; i++)
         {
@@ -296,17 +297,19 @@ int main(void)
     //     printf("\n");
     // }
     
-    double input_test[] = {2, 2};
+    double input_test[] = {1, 1};
 
     int n = TRAINING_TIMES;
     int layers_num = 1;
-    int layers_size = 1;
+    int layers_size = 2;
     network model = genDenseNetwork(layers_num, layers_size, input_size, output_size);
+    printDenseNetwork(model);
+
     printf("cost function value before %i trains: %lf\n", n, costDenseNetwork(model, data_size, data));
-    printf("evaluate before %i trainings: %lf %lf\n\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
+    printf("evaluate before %i trainings: %lf %lf\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
     for(size_t i = 0; i < (size_t) n; i++) trainDenseNetwork(model, data_size, data);
     printf("cost function value after %i trains: %lf\n", n, costDenseNetwork(model, data_size, data));
-    printf("evaluate after %i trainings: %lf %lf\n\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
+    printf("evaluate after %i trainings: %lf %lf\n", n, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
 
     printDenseNetwork(model);
 }
