@@ -6,4 +6,4 @@ else
     echo "compiling only...";
     gcc perceptron.c -Wall -lm -o perceptron
 fi
-rm perceptron
+# rm perceptron
