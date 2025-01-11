@@ -77,7 +77,7 @@ void trainDenseNetwork(network model, int data_size, double **data)
         for(size_t i = 0; i < actual_layer->height; i++)
         {
             for(size_t k = 0; k < actual_layer->neurons[i].input_size; k++)
-            {
+            {   
                 double cost_w = costDenseNetwork(model, data_size, data); 
                 ((actual_layer->neurons[i]).weights[k]) += EPSILON;
 
@@ -155,14 +155,14 @@ double *evaluateDenseInput(network model, double *input)
         else
         {
             actual_layer = actual_layer->next;
-            actual_layer_output = malloc(sizeof(double) * actual_layer->height);
+            actual_layer_output = malloc(actual_layer->height * sizeof(double));
             for(size_t j = 0; j < (size_t) actual_layer->height; j++)
             {
                 actual_layer_output[j] = dotProd(last_layer_size, actual_layer->neurons[j].weights, last_layer_output);
             }
             free(last_layer_output);
             last_layer_output = actual_layer_output;
-            last_layer_size = actual_layer->height; 
+            last_layer_size = actual_layer->height;
         }
     }
     return last_layer_output;
@@ -184,11 +184,12 @@ network genDenseNetwork(int layers_num, int layer_size, int input_size, int outp
         {
             l = malloc(sizeof(layer));
             model.initial_layer = l;
-            if(i != (layers_num - 1))
+            // Se há mais de uma camada: 
+            if(layers_num > 1)
                 l->height = layer_size;
             else
                 l->height = output_size;
-            l->neurons = malloc(l->height * sizeof(perceptron));
+            l->neurons = malloc((l->height) * sizeof(perceptron));
             l->previous = NULL;
             l->next = NULL;
             for(size_t j = 0; j < (size_t) l->height; j++)
@@ -202,6 +203,7 @@ network genDenseNetwork(int layers_num, int layer_size, int input_size, int outp
             }
             continue;
         }
+        // Se a atual camada a ser criada não é a última:
         else if(i != (layers_num - 1))
         {
             l->next = malloc(sizeof(layer));
@@ -209,7 +211,7 @@ network genDenseNetwork(int layers_num, int layer_size, int input_size, int outp
             l->next->previous = l;
             l = l->next; 
             l->height = layer_size;
-            l->neurons = malloc(sizeof(layer_size) * sizeof(perceptron));
+            l->neurons = malloc(layer_size * sizeof(perceptron));
             for(size_t j = 0; j < (size_t) l->height; j++)
             {
                 l->neurons[j].input_size = (*(l->previous)).height;
@@ -310,9 +312,9 @@ int main(void)
     //     printf("\n");
     // }
     
-    double input_test[] = {1, 1};
-    int layers_num = 1;
-    int layers_size = 1;
+    double input_test[] = {10, 8};
+    int layers_num = 3;
+    int layers_size = 5;
     network model = genDenseNetwork(layers_num, layers_size, input_size, output_size);
     printDenseNetwork(model);
     printf("cost function value before %i trains: %lf\n", TRAINING_TIMES, costDenseNetwork(model, data_size, data));
@@ -320,6 +322,5 @@ int main(void)
     for(size_t i = 0; i < (size_t) TRAINING_TIMES; i++) trainDenseNetwork(model, data_size, data);
     printf("cost function value after %i trains: %lf\n", TRAINING_TIMES, costDenseNetwork(model, data_size, data));
     printf("evaluate after %i trainings: %lf %lf\n", TRAINING_TIMES, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);
-
     printDenseNetwork(model);
 }

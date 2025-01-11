@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define EPSILON 0.01
+#define EPSILON 0.00025
 // Para a função de custo: 0 -> mean of abs value differences, 1 -> mean of squared differences 
 #define COST_FUNCTION 1
 #define TRAINING_TIMES 100000

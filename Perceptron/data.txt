@@ -1,5 +1,5 @@
 # formato: data_size input_size output_size e note que data_size = (número de linhas - 2)
-14 2 2
+18 2 2
 1 1 2 0
 0 0 0 0
 4 5 9 -1
@@ -14,3 +14,7 @@
 15 10 25 5
 41 40 81 1
 100 102 202 -2
+1000 500 1500 500
+450 50 500 400
+700 200 900 500
+500 250 750 250
