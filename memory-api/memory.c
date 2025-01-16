@@ -4,13 +4,15 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define align4(x) (((((x)-1)>>2)<<2)+4)
+
 // NOTES:
 //      - brk(x) moves the heap address to the address x but if the last address in the
 //      heap is y and y > x then brk(x) returns y (I thinks it's how it works, but it's not explained 
 //      anywhere, even in the manual).
 
 typedef struct memory_segment *mem_seg_ptr;
-// It's possible to use "*" in tge type definition, then mem_seg represents the type "struct Mem_seg *".
+// It's possible to use "*" in tge type definition, then mem_seg represents the type "struct memory_segment *".
 
 struct memory_segment 
 {
@@ -24,6 +26,11 @@ struct memory_segment
     int free;
 };
 
+#define mem_seg_size sizeof(struct memory_segment)
+// This will be the pointer to the first block (starts with null, so it's possible to know when the first
+// segment is created):
+mem_seg_ptr base = NULL;
+
 void *malloc(size_t size)
 {
     void *ptr = sbrk(0);
@@ -35,6 +42,17 @@ void *malloc(size_t size)
         assert(ptr == req);
         return ptr;
     }
+}
+
+mem_seg_ptr findSeg(mem_seg_ptr last, size_t size)
+{
+    mem_seg_ptr b = base;
+    while (b && !(b->free && b->size >= size))
+    {
+        last = b;
+        b = b->next;
+    }
+    return b;
 }
 
 void free(void *ptr);
