@@ -102,9 +102,10 @@ void *malloc(size_t s)
     // If a block was found it means the block found has a size bigger than MEM_SEG_SIZE + aligned_size:
     if(a)
     {
-        // Because the real size of the struct mem_seg is 24 (MEM_SEG_SIZE + 4) it's necessary the block
+        // Because the real size of the struct mem_seg is 32 (MEM_SEG_SIZE + 4) it's necessary the block
         // found to have a minimum size that fits the new struct mem_seg created when spliting:
-        if(a->size > MEM_SEG_SIZE + 4)
+        // if(a->size > MEM_SEG_SIZE + 4)
+        if(a->size > sizeof(struct memory_segment))
             splitSeg(a, aligned_size);
     }
     // Else no free block was found, so it's needed to extend the heap:
