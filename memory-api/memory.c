@@ -25,12 +25,27 @@ struct memory_segment
     // that using an integer (4 bytes) or a char (1 byte) as flag doesn't change the size of the of
     // the structure.
     int free;
+    void *ptr;
     char data[1];
 };
+// I found a better explanation about the memory alignment done by the C compiler in:
+// https://levelup.gitconnected.com/how-struct-memory-alignment-works-in-c-3ee897697236
+// Following what is tells the compiler aligns the structure by the biggest field size, which is 8 in this case,
+// then, if there are a list of field in sequence which the size of each of them added togheter sums up lesse then 8
+// they will be put in a contiguous memory slot with 8 bytes and x bytes of padding (x + the sum = 8):
+// 
+// [   data_1    |    data_2   | ... | data_n  |    padding   |    data_n+1   | ... | data_n+m  ]
+// 
+// The padding size position is choosen in a way that the aligment in this piece of memory is the biggest size of data
+// and then, breaking it in more blocks like:
+// 
+// [   data_1    |    data_2   | ... |   data_n  ]
+// 
+// the same rule will be followed to this and others smaller blocks.
 
 // #define MEM_SEG_SIZE sizeof(struct memory_segment)
 // Because the field data points to beggining of that and then it is really a part of the meta data 
-#define MEM_SEG_SIZE 28
+#define MEM_SEG_SIZE 40
 
 // This will be the pointer to the first block (starts with null, so it's possible to know when the first
 // segment is created):
@@ -62,32 +77,37 @@ mem_seg_ptr findSeg(mem_seg_ptr *last, size_t size)
 
 mem_seg_ptr extendHeap(mem_seg_ptr last, size_t data_size)
 {
-    mem_seg_ptr ptr;
-    ptr = sbrk(0);
+    mem_seg_ptr m;
+    m = sbrk(0);
     if(sbrk(MEM_SEG_SIZE + data_size) == (void *) -1)
         return NULL;
-    ptr->free = 0;
-    ptr->size = data_size;
-    ptr->next = NULL;
+    m->free = 0;
+    m->size = data_size;
+    m->next = NULL;
+    m->ptr = (void *) m->data;
     if(last != NULL)
-        last->next = ptr;
-    return ptr; 
+        last->next = m;
+    return m; 
 }
 
-void splitSeg(mem_seg_ptr a, size_t s)
+void splitSeg(mem_seg_ptr a, size_t size)
 {
-    mem_seg_ptr b;
-    b = (mem_seg_ptr) (a->data + s);
-    b->size = a->size - s;
-    a->size = s;
-    b->next = a->next;
-    a->next = b;
-    b->free = 1;
+    if(a->size - size >= sizeof(struct memory_segment))
+    {
+        mem_seg_ptr b;
+        b = (mem_seg_ptr) (a->ptr + size);
+        b->size = a->size - size;
+        a->size = size;
+        b->next = a->next;
+        a->next = b;
+        b->free = 1;
+        b->ptr = (void *) b->data;
+    }
 }
 
-void *malloc(size_t s)
+void *malloc(size_t size)
 {
-    size_t aligned_size = align4(s);
+    size_t aligned_size = align4(size);
     // If it's the first time using malloc:
     if(!base)
     {
@@ -128,25 +148,29 @@ void *calloc(size_t num, size_t size)
     return ((void *) ptr);
 }
 
-void fusion(mem_seg_ptr fst, mem_seg_ptr snd)
+void fusion(mem_seg_ptr fst)
 {
-    fst->size += MEM_SEG_SIZE + snd->size;
-    fst->next = snd->next;
-    if(snd->next)
-        snd->next->prev = fst;
-}
-
-void defragmentation()
-{
-    mem_seg_ptr b = base;
-    while (b != NULL)
+    mem_seg_ptr snd = fst->next;
+    if(snd)
     {
-        if(b->next != NULL && b->free && b->next->free)
-            fusion(b, b->next);
-        else
-            b = b->next;
+        fst->size += MEM_SEG_SIZE + snd->size;
+        fst->next = snd->next;
+        if(snd->next)
+            snd->next->prev = fst;
     }
 }
+
+// void defragmentation()
+// {
+//     mem_seg_ptr b = base;
+//     while (b != NULL)
+//     {
+//         if(b->next != NULL && b->free && b->next->free)
+//             fusion(b, b->next);
+//         else
+//             b = b->next;
+//     }
+// }
 
 // The following function suposes that the parameter ptr is a pointer to the data:
 void *getMetaData(void *ptr)
@@ -160,9 +184,10 @@ int validateAddr(void *p)
 {
     if(base)
     {
-        if(base < p && p < sbrk(0))
+        if((base < p) && (p < sbrk(0)))
         {
-            return (p == (void *) ((mem_seg_ptr) getMetaData(p))->data);
+            // The pointer must be equal to the pointer inside it's respective metada:
+            return (p == (((mem_seg_ptr) getMetaData(p))->ptr));
         }
     }
     return 0;
@@ -178,12 +203,12 @@ void free(void *ptr)
         if(meta_data->prev && meta_data->prev->free)
         {
             mem_seg_ptr prev_mem = meta_data->prev; 
-            fusion(prev_mem, meta_data);
+            fusion(prev_mem);
             meta_data = prev_mem;
         }
         // If the next mem_seg exists and is free:
         if(meta_data->next && meta_data->next->free)
-            fusion(meta_data, meta_data->next);
+            fusion(meta_data);
         // Else if the next mem_seg don't exist:
         else if(meta_data->next == NULL)
         {
@@ -208,6 +233,58 @@ void free(void *ptr)
     }
 }
 
+void copyMemSeg(mem_seg_ptr source, mem_seg_ptr dest)
+{
+    if(dest->size >= source->size)
+    {
+        dest->size = source->size;
+        int *data_source, *data_dest;
+        data_source = (int *) source->ptr;
+        data_dest = (int *) dest->ptr;
+        for(size_t i = 0; i * 4 < source->size; i++)
+        {
+            data_dest[i] = data_source[i];
+        }
+    }
+}
+
+void *realloc(void *ptr, size_t size)
+{
+    size_t aligned_size = align4(size);
+    if(ptr && validateAddr(ptr))
+    {
+        mem_seg_ptr meta_data = (mem_seg_ptr) getMetaData(ptr);
+        if(meta_data->size >= aligned_size)
+        {
+            // The function splitSeg() verifies if it's possible to split:
+            splitSeg(meta_data, aligned_size);
+            return meta_data->ptr;
+        }
+        else
+        {
+            // If the next memory segment has enough size and is free:
+            if(meta_data->next && meta_data->next->free && (meta_data->size + MEM_SEG_SIZE + meta_data->next->size) >= aligned_size)
+            {
+                fusion(meta_data);
+                if(meta_data->size >= aligned_size)
+                    splitSeg(meta_data, aligned_size);
+                return meta_data->ptr;
+            }
+            // Else it's necessary to do a malloc:
+            else
+            {
+                void *ptr_copy = malloc(size);
+                copyMemSeg(meta_data, (mem_seg_ptr) getMetaData(ptr_copy));
+                free(ptr);
+                return ptr_copy;
+            }
+        }
+    }
+    if(!ptr)
+        return malloc(size);
+    return NULL;
+}
+
 int main(void)
 {
     printf("%i\n", sizeof(void *));
@@ -223,12 +300,19 @@ int main(void)
     printf("&a.next = %li\n", &a.next);
     printf("&a.prev = %li\n", &a.prev);
     printf("&a.free = %li\n", &a.free);
+    printf("&a.ptr = %li\n", &a.ptr);
     printf("a.data = %li\n", a.data);
+    printf("&a.data = %li\n", &a.data);
     printf("(((char *) &a) - a.data) = %li\n", (((char *) &a) - a.data));
     printf("%i\n", 2 << 1);
+    // return 0;
 
     int *ptr1 = calloc(2, sizeof(int));
     int *tmp = ptr1;
+    ptr1 = realloc(ptr1, sizeof(int) * 2);
+    printf("tmp = %i\n", tmp);
+    printf("ptr1 = %i\n", ptr1);
+    // return 0;
     size_t *ptr2 = malloc(sizeof(size_t));
     free(ptr1);
     ptr1 = calloc(1, sizeof(int));
