@@ -1,0 +1,54 @@
+.descend-animation {
+    -webkit-animation-fill-mode: forwards;
+    animation-fill-mode: forwards;
+    /* position: relative; */
+    animation: animate-to-middle 2s
+}
+
+@keyframes animate-to-middle {
+    from {
+        top: -300px;
+        opacity: 0
+    }
+
+    to {
+        /* top: 0; */
+        opacity: 1
+    }
+}
+
+.up-animation {
+    /* -webkit-animation-fill-mode: forwards; */
+    /* animation-fill-mode: forwards; */
+    /* position: relative; */
+    animation: animate-to-top 2s;
+}
+
+@keyframes animate-to-top {
+    from {
+        opacity: 1;
+    }
+    
+    to {
+        top: -300px;
+        opacity: 0;
+    }
+}
+
+
+/* .descend-animation:hover {
+    transform: scaleY(1);
+    transition: transform 2s ease-in-out;
+    animation: animatetop 2s, expansion 0.6s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes expansion {
+    from {
+        transform: scale(0)
+    }
+    
+    to {
+        transform: scale(1)
+    }
+} */
