@@ -13,9 +13,9 @@ void printDenseNetwork(network model)
             for (size_t k = 0; k < (size_t) l->neurons[i].input_size; k++)
             {
                 printf("w%li = %.4lf", k+1, l->neurons[i].weights[k]);
-                if(k != (l->neurons[i].input_size - 1))
-                    printf(", ");
+                printf(", ");
             }
+            printf("w_bias = %.4lf", l->neurons[i].b);
             printf("] ");
             
         }
@@ -78,15 +78,25 @@ void trainDenseNetwork(network model, int data_size, double **data)
         {
             for(size_t k = 0; k < actual_layer->neurons[i].input_size; k++)
             {   
+                // printf("Training w_%li,%li...\n", i, k + 1);
                 double cost_w = costDenseNetwork(model, data_size, data); 
+                // printf("cost_w = %lf\n", cost_w);
+                
                 ((actual_layer->neurons[i]).weights[k]) += EPSILON;
-
                 double cost_w_epsilon = costDenseNetwork(model, data_size, data);
                 ((actual_layer->neurons[i]).weights[k]) -= EPSILON;
 
-                // actual_layer->neurons[i].weights[k] -= signal(cost_w_epsilon - cost_w) * EPSILON;
                 ((actual_layer->neurons[i]).weights[k]) -= (cost_w_epsilon - cost_w) * EPSILON;
             }
+            // To change the bias value:
+            double cost_w = costDenseNetwork(model, data_size, data); 
+            
+            ((actual_layer->neurons[i]).b) += EPSILON;
+            double cost_w_epsilon = costDenseNetwork(model, data_size, data);
+            ((actual_layer->neurons[i]).b) -= EPSILON;
+
+            // ((actual_layer->neurons[i]).b) -= signal(cost_w_epsilon - cost_w) * EPSILON;
+            ((actual_layer->neurons[i]).b) -= (cost_w_epsilon - cost_w) * EPSILON;
         }
     }
 }
@@ -101,7 +111,8 @@ double costDenseNetwork(network model, int data_size, double **data)
 {
     int input_size = model.input_size;
     int output_size = model.output_size;
-    double carry = 0;
+    double carry = 0.0;
+    // data_size is the number of samples and then the cost function is the average of error related to each sample:
     for(size_t i = 0; i < (size_t) data_size; i++)
     {
         // data[i] = {x1, x2, ..., xn, y1, y2, ..., yk}
@@ -114,7 +125,7 @@ double costDenseNetwork(network model, int data_size, double **data)
             // else if(COST_FUNCTION == 1)
             else
             {
-                carry += pow((data[i][input_size + k] - (evaluateDenseInput(model, data[i]))[k]), 2) / ((double) data_size);
+                carry += pow((data[i][input_size + k] - (evaluateDenseInput(model, data[i]))[k]), 2.0) / ((double) data_size);
             }
         }
     }
@@ -123,52 +134,50 @@ double costDenseNetwork(network model, int data_size, double **data)
 
 double dotProd(int dim, double *v1, double *v2)
 {
-    // printf("inside dotProd\n");
     double carry = 0.0;
     for(size_t i = 0; i < (size_t) dim; i++)
         carry += (v1[i] * v2[i]);
-    // printf("inside end dotProd\n");
     return carry;
 }
 
 double *evaluateDenseInput(network model, double *input)
-{
+{   
     layer *actual_layer;
-    actual_layer = NULL;
+    actual_layer = model.initial_layer;
     double *actual_layer_output;
     double *last_layer_output;
     actual_layer_output = NULL;
-    last_layer_output = NULL;
-    int last_layer_size = 0;
+    // last_layer_output = NULL;
+    last_layer_output = input;
+    int last_layer_size = model.input_size;
     for(size_t i = 0; i < (size_t) model.layers_num; i++)
     {
-        if(actual_layer == NULL)
+        // The problem is that we need to fix it for the initial case whe
+        actual_layer_output = malloc(actual_layer->height * sizeof(double));
+        for(size_t j = 0; j < (size_t) actual_layer->height; j++)
         {
-            actual_layer = model.initial_layer;
-            last_layer_output = malloc((actual_layer->height) * sizeof(double));
-            last_layer_size = actual_layer->height;
-            for(size_t j = 0; j < (size_t) actual_layer->height; j++)
+            if(model.activation_function != NULL)
             {
-                last_layer_output[j] = dotProd(model.input_size, (actual_layer->neurons[j]).weights, input);
+                actual_layer_output[j] = (*model.activation_function)(dotProd(last_layer_size, actual_layer->neurons[j].weights, last_layer_output)
+                                        + actual_layer->neurons[j].b);
             }
+            else 
+            actual_layer_output[j] = dotProd(last_layer_size, actual_layer->neurons[j].weights, last_layer_output) + actual_layer->neurons[j].b;
         }
-        else
-        {
-            actual_layer = actual_layer->next;
-            actual_layer_output = malloc(actual_layer->height * sizeof(double));
-            for(size_t j = 0; j < (size_t) actual_layer->height; j++)
-            {
-                actual_layer_output[j] = dotProd(last_layer_size, actual_layer->neurons[j].weights, last_layer_output);
-            }
+        if(last_layer_output != input) 
             free(last_layer_output);
-            last_layer_output = actual_layer_output;
-            last_layer_size = actual_layer->height;
-        }
+        last_layer_output = actual_layer_output;
+        last_layer_size = actual_layer->height;
+    }
+    if(DISCRETE_EVALUATION)
+    {
+        for(size_t i = 0; i < model.output_size; i++)
+            last_layer_output[i] = round(last_layer_output[i]);
     }
     return last_layer_output;
 }
 
-network genDenseNetwork(int layers_num, int layer_size, int input_size, int output_size)
+network genDenseNetwork(int layers_num, int layer_size, int input_size, int output_size, double(*activation_function)(double))
 {
     network model;
     model.initial_layer = NULL;
@@ -176,6 +185,7 @@ network genDenseNetwork(int layers_num, int layer_size, int input_size, int outp
     model.input_size = input_size;
     model.output_size = output_size;
     model.layers_num = layers_num;
+    model.activation_function = activation_function;
     layer *l;
     for(size_t i = 0; i < (size_t) layers_num; i++)
     {
@@ -214,14 +224,14 @@ network genDenseNetwork(int layers_num, int layer_size, int input_size, int outp
             l->neurons = malloc(layer_size * sizeof(perceptron));
             for(size_t j = 0; j < (size_t) l->height; j++)
             {
-                l->neurons[j].input_size = (*(l->previous)).height;
-                l->neurons[j].b = 0;
+                l->neurons[j].input_size = (l->previous)->height;
+                l->neurons[j].b = 0.0;
                 l->neurons[j].weights = malloc(l->neurons[j].input_size * sizeof(double));
                 l->neurons[j].input = malloc(l->neurons[j].input_size * sizeof(perceptron *));
                 for(size_t k = 0; k < (size_t) l->neurons[j].input_size; k++)
                 {
                     l->neurons[j].weights[k] = 1.0;
-                    l->neurons[j].input[k] = &(l->previous->neurons[k]);
+                    (l->neurons[j]).input[k] = &(l->previous->neurons[k]);
                 }
             }
             continue;
@@ -239,12 +249,12 @@ network genDenseNetwork(int layers_num, int layer_size, int input_size, int outp
             for(size_t j = 0; j < (size_t) l->height; j++)
             {
                 l->neurons[j].input_size = l->previous[0].height;
-                l->neurons[j].b = 0;
+                l->neurons[j].b = 0.0;
                 l->neurons[j].weights = malloc(l->neurons[j].input_size * sizeof(double));
                 l->neurons[j].input = malloc(l->neurons[j].input_size * sizeof(perceptron *));
                 for(size_t k = 0; k < (size_t) l->neurons[j].input_size; k++)
                 {
-                    l->neurons[j].weights[k] = 1;
+                    l->neurons[j].weights[k] = 1.0;
                     l->neurons[j].input[k] = &l->previous->neurons[k];
                 }
             }
@@ -298,24 +308,42 @@ void generateRect(double **input, int input_width, int input_height, double valu
     }
 }
 
+double fabsCos(double x)
+{
+    return fabs(cos(x));
+}
+
+double logistic(double x)
+{
+    return (1 / (1 + exp(-x)));
+}
+
 int main(void)
 {
     // printf("teste = %s\n", (1 == 1) ? "true" : "false");
     // printf("teste = %d\n", (bool) (-10000));
     double **data;
     int data_size, input_size, output_size;
-    data = readData("data.txt", &data_size, &input_size, &output_size);
-    // for(size_t i = 0; i < (size_t) data_size; i++)
-    // {
-    //     for(size_t j = 0; j < (size_t) (input_size + output_size); j++)
-    //         printf("%lf ", data[i][j]);
-    //     printf("\n");
-    // }
-    
-    double input_test[] = {10, 8};
-    int layers_num = 3;
-    int layers_size = 5;
-    network model = genDenseNetwork(layers_num, layers_size, input_size, output_size);
+    data = readData("datasets/logistic_regression.txt", &data_size, &input_size, &output_size);
+    // data = readData("datasets/data.txt", &data_size, &input_size, &output_size);
+    // data = readData("datasets/sub.txt", &data_size, &input_size, &output_size);
+    // data = readData("datasets/sub_plus_one.txt", &data_size, &input_size, &output_size);
+    // data = readData("datasets/xor.txt", &data_size, &input_size, &output_size);
+    for(size_t i = 0; i < (size_t) data_size; i++)
+    {
+        for(size_t j = 0; j < (size_t) (input_size + output_size); j++)
+            printf("%lf ", data[i][j]);
+        printf("\n");
+    }
+
+    // double input_test[] = {1, 1};
+    double input_test[] = {2, 1};
+    int layers_num = 1;
+    int layers_size = 1;
+
+    // network model = genDenseNetwork(layers_num, layers_size, input_size, output_size, NULL);
+    network model = genDenseNetwork(layers_num, layers_size, input_size, output_size, logistic);
+    // network model = genDenseNetwork(layers_num, layers_size, input_size, output_size, fabsCos);
     printDenseNetwork(model);
     printf("cost function value before %i trains: %lf\n", TRAINING_TIMES, costDenseNetwork(model, data_size, data));
     printf("evaluate before %i trainings: %lf %lf\n", TRAINING_TIMES, evaluateDenseInput(model, input_test)[0], evaluateDenseInput(model, input_test)[1]);

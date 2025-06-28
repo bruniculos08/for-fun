@@ -4,10 +4,11 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define EPSILON 0.00025
+#define DISCRETE_EVALUATION 0
+#define EPSILON 1
 // Para a função de custo: 0 -> mean of abs value differences, 1 -> mean of squared differences 
 #define COST_FUNCTION 1
-#define TRAINING_TIMES 100000
+#define TRAINING_TIMES 200
 
 typedef struct Perceptron perceptron;
 
@@ -46,6 +47,8 @@ typedef struct Network
     layer *initial_layer;
     // Camada final:
     layer *final_layer;
+    // Função de ativação:
+    double(*activation_function)(double);
 } network;
 
 // Função para "imprimir" rede neural densa:
@@ -55,7 +58,9 @@ double **readData(char *file_name, int *data_size, int *input_size, int *output_
 // Função para multiplicar vetores de doubles:
 double dotProd(int dim, double *v1, double *v2);
 // Função para gerar rede com o máximo de perceptrons e conexões entre as camadas:
-network genDenseNetwork(int layers_num, int layer_size, int input_size, int output_size);
+network genDenseNetwork(int layers_num, int layer_size, int input_size, int output_size, double(*activation_function)(double));
+// Função para gerar com número personalizado de perceptrons em cada camada 
+network genNetwork(int layers_num, int *layer_size, int input_size, int output_size, double(*activation_function)(double));
 // Função para calcular vetor de output de uma rede neural densa (i.e., todo neurônio da camada i recebe todos os outputs da camada i-1)...
 // com base em um vetor de input:
 double *evaluateDenseInput(network model, double *input); 
