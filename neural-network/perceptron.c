@@ -12,7 +12,7 @@ void printDenseNetwork(network model)
             printf("[");
             for (size_t k = 0; k < (size_t) l->neurons[i].input_size; k++)
             {
-                printf("w%li = %.4lf", k+1, l->neurons[i].weights[k]);
+                printf("w%li = %.4lf", k, l->neurons[i].weights[k]);
                 printf(", ");
             }
             printf("w_bias = %.4lf", l->neurons[i].b);
