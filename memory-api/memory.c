@@ -1,8 +1,11 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#define swap(type, foo, bar) ({type tmp; tmp=foo; foo=bar; bar=tmp;})
 
 #define align4(x) (((((x)-1)>>2)<<2)+4)
 
@@ -285,33 +288,77 @@ void *realloc(void *ptr, size_t size)
     return NULL;
 }
 
+int printf(const char *str, ...)
+{
+    va_list pa;
+    int flag;
+
+    va_start(pa, str);
+
+    int size = strlen(str);
+    int count = 100;
+    char *buffer = malloc(sizeof(char) * size);
+    for(size_t i = 0; i < size; i++)
+    {
+        if(str[i] == '%')
+        {
+            if(str[i+1] == 'c')
+            {
+                buffer[i] = (char) va_arg(pa, int);
+                i++;
+            }
+            continue;
+        }
+        buffer[i] = str[i];
+    }
+    write(1, buffer, sizeof(char) * size);
+
+    // char buffer[5] = "test";
+    // write(1, buffer, sizeof(char) * 5);
+
+    // int buffer[5] = {100,10,40,30,20};
+    // write(1, buffer, sizeof(int) * 5);
+    
+    va_end(pa);   
+}
+
 int main(void)
 {
-    printf("%i\n", sizeof(void *));
-    printf("%i\n", sizeof(size_t));
-    printf("%i\n", sizeof(int));
-    printf("%i\n", sizeof(mem_seg_ptr));
-    struct memory_segment a;
-    printf("%i\n", sizeof(a));
-    printf("sizeof(struct memory_segment) = %i\n", sizeof(struct memory_segment));
-    printf("&a = %li\n", &a);
-    printf("&a + MEM_SEG_SIZE = %li\n", ((char *) &a) + MEM_SEG_SIZE);
-    printf("&a.size = %li\n", &a.size);
-    printf("&a.next = %li\n", &a.next);
-    printf("&a.prev = %li\n", &a.prev);
-    printf("&a.free = %li\n", &a.free);
-    printf("&a.ptr = %li\n", &a.ptr);
-    printf("a.data = %li\n", a.data);
-    printf("&a.data = %li\n", &a.data);
-    printf("(((char *) &a) - a.data) = %li\n", (((char *) &a) - a.data));
-    printf("%i\n", 2 << 1);
+    // int a = 0, b = 1;
+    // swap(int, a, b);
+    // printf("a = %i, b = %i\n", a, b);
+    
+    printf("test %c\n", 'x');
+    return 0;
+    // printf("%i\n", sizeof(void *));
+    // printf("%i\n", sizeof(size_t));
+    // printf("%i\n", sizeof(int));
+    // printf("%i\n", sizeof(mem_seg_ptr));
+    // struct memory_segment a;
+    // printf("%i\n", sizeof(a));
+    // printf("sizeof(struct memory_segment) = %i\n", sizeof(struct memory_segment));
+    // printf("&a = %li\n", &a);
+    // printf("&a + MEM_SEG_SIZE = %li\n", ((char *) &a) + MEM_SEG_SIZE);
+    // printf("&a.size = %li\n", &a.size);
+    // printf("&a.next = %li\n", &a.next);
+    // printf("&a.prev = %li\n", &a.prev);
+    // printf("&a.free = %li\n", &a.free);
+    // printf("&a.ptr = %li\n", &a.ptr);
+    // printf("a.data = %li\n", a.data);
+    // printf("&a.data = %li\n", &a.data);
+    // printf("(((char *) &a) - a.data) = %li\n", (((char *) &a) - a.data));
+    // printf("%i\n", 2 << 1);
     // return 0;
 
     int *ptr1 = calloc(2, sizeof(int));
+    ptr1[0] = 1001;
+    ptr1[1] = 1000;
     int *tmp = ptr1;
-    ptr1 = realloc(ptr1, sizeof(int) * 2);
+    ptr1 = realloc(ptr1, sizeof(int) * 5);
     printf("tmp = %i\n", tmp);
     printf("ptr1 = %i\n", ptr1);
+    printf("ptr1[0] = %i\n", ptr1[0]);
+    printf("ptr1[1] = %i\n", ptr1[1]);
     // return 0;
     size_t *ptr2 = malloc(sizeof(size_t));
     free(ptr1);

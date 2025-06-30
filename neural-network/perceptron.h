@@ -1,13 +1,16 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdbool.h>
-#include <math.h>
+#include <string.h>
 
-#define EPSILON 0.00025
+#define OPTION_OUTPUT true
+#define DISCRETE_EVALUATION false
+#define EPSILON 0.001
 // Para a função de custo: 0 -> mean of abs value differences, 1 -> mean of squared differences 
 #define COST_FUNCTION 1
-#define TRAINING_TIMES 100000
+#define TRAINING_TIMES 800000
 
 typedef struct Perceptron perceptron;
 
@@ -38,14 +41,17 @@ struct Layer
 
 typedef struct Network
 {
-    int input_size;
+    size_t input_size;
     // Uma rede tem um número de outputs que diz portanto o número de perceptrons em sua última camada:
-    int output_size;
-    int layers_num;
+    size_t output_size;
+    size_t layers_num;
+    size_t *layers_size;
     // Camada inicial:
     layer *initial_layer;
     // Camada final:
     layer *final_layer;
+    // Função de ativação:
+    double(*activation_function)(double);
 } network;
 
 // Função para "imprimir" rede neural densa:
@@ -53,16 +59,18 @@ void printDenseNetwork(network model);
 // Função para gerar vetor de dados:
 double **readData(char *file_name, int *data_size, int *input_size, int *output_size);
 // Função para multiplicar vetores de doubles:
-double dotProd(int dim, double *v1, double *v2);
+double dotProd(size_t dim, double *v1, double *v2);
 // Função para gerar rede com o máximo de perceptrons e conexões entre as camadas:
-network genDenseNetwork(int layers_num, int layer_size, int input_size, int output_size);
+network genUniformDenseNetwork(size_t layers_num, size_t layer_size, size_t input_size, size_t output_size, double(*activation_function)(double));
+// Função para gerar com número personalizado de perceptrons em cada camada 
+network genDenseNetwork(size_t layers_num, size_t *layer_size, size_t input_size, size_t output_size, double(*activation_function)(double));
 // Função para calcular vetor de output de uma rede neural densa (i.e., todo neurônio da camada i recebe todos os outputs da camada i-1)...
 // com base em um vetor de input:
 double *evaluateDenseInput(network model, double *input); 
 // Função de custo (erro):
-double costDenseNetwork(network model, int data_size, double **data);
+double costDenseNetwork(network model, size_t data_size, double **data);
 // Função de treino:
-void train(network model, int data_size, double **data);
+void train(network model, size_t data_size, double **data);
 // Função para colocar k no intervalo [low,high]:
 int clampi(int k, int low, int high);
 // Função para retornar 1 ou -1 de acordo com o sinal de x:
@@ -72,4 +80,4 @@ double triangleArea(double xa, double ya, double xb, double yb, double xc, doubl
 // Função para verificar se um ponto (xp,yp) está contido no triângulo de vértices (xa,ya), (xb,yb) e (xc,yc):
 bool pointInsideTriangle(double xp, double yp, double xa, double ya, double xb, double yb, double xc, double yc);
 // Desenha em uma matriz "input" um retângulo de dimensões width e height:
-void generateRect(double **input, int input_width, int input_height, double value, int x0, int y0, int width, int height);
+void generateRect(double **input, size_t input_width, size_t input_height, double value, size_t x0, size_t y0, size_t width, size_t height);
